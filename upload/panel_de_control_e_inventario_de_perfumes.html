@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Inventario y Precios - Perfumes</title>
+  <!-- Tailwind CSS para diseño moderno -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts para tipografía premium -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    /* Estilo para simular tabla de Excel interactiva */
+    .excel-cell:focus {
+      outline: 2px solid #b45309; /* Color ambar/dorado */
+      background-color: #fffbeb;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <div class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    
+    <!-- HEADER -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between pb-6 border-b border-slate-200 mb-8">
+      <div>
+        <h1 class="text-3xl font-extrabold text-slate-950 tracking-tight flex items-center gap-2">
+          <span>✨</span> Panel de Control de Perfumes
+        </h1>
+        <p class="mt-1 text-sm text-slate-500">Gestiona precios mayoristas, calcula márgenes sugeridos y exporta directamente a Excel.</p>
+      </div>
+      <div class="mt-4 md:mt-0 flex gap-3">
+        <button onclick="exportToCSV()" class="inline-flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-semibold rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          Exportar a Excel (CSV)
+        </button>
+        <button onclick="resetData()" class="inline-flex items-center justify-center px-4 py-2.5 border border-slate-300 text-sm font-semibold rounded-lg text-slate-700 bg-white hover:bg-slate-50 shadow-xs transition-all">
+          Restaurar Lista Original
+        </button>
+      </div>
+    </div>
+
+    <!-- METRIC CARDS -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+      <!-- Total Perfumes -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Perfumes</p>
+          <h3 id="metric-total" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+        </div>
+        <div class="p-3 rounded-lg bg-amber-50 text-amber-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+        </div>
+      </div>
+
+      <!-- Con Precio -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Cotizados (Con Precio)</p>
+          <h3 id="metric-priced" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+        </div>
+        <div class="p-3 rounded-lg bg-emerald-50 text-emerald-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+      </div>
+
+      <!-- Sin Precio -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Sin Cotizar (Sin Precio)</p>
+          <h3 id="metric-unpriced" class="text-2xl font-bold text-rose-500 mt-1">0</h3>
+        </div>
+        <div class="p-3 rounded-lg bg-rose-50 text-rose-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </div>
+      </div>
+
+      <!-- Promedio Costo Mayorista -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Costo Promedio (Mayor)</p>
+          <h3 id="metric-avg-cost" class="text-2xl font-bold text-indigo-600 mt-1">$0.00</h3>
+        </div>
+        <div class="p-3 rounded-lg bg-indigo-50 text-indigo-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTROLS & DYNAMIC MARGIN CALCULATOR -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      
+      <!-- Search and Gender Filters -->
+      <div class="flex flex-col sm:flex-row gap-3 flex-1">
+        <div class="relative flex-1">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </span>
+          <input type="text" id="search-input" oninput="handleSearch()" placeholder="Buscar perfume por nombre..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:bg-white text-sm transition-all outline-none">
+        </div>
+        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
+          <button onclick="filterGender('TODOS')" id="btn-gender-TODOS" class="gender-btn px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all bg-white text-slate-800 shadow-xs">Todos</button>
+          <button onclick="filterGender('DAMA')" id="btn-gender-DAMA" class="gender-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-500 hover:text-slate-800 transition-all">Dama</button>
+          <button onclick="filterGender('CABALLERO')" id="btn-gender-CABALLERO" class="gender-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-500 hover:text-slate-800 transition-all">Caballero</button>
+          <button onclick="filterGender('UNISEX')" id="btn-gender-UNISEX" class="gender-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-500 hover:text-slate-800 transition-all">Unisex</button>
+        </div>
+      </div>
+
+      <!-- Dynamic Margin Calculator Selector -->
+      <div class="flex flex-wrap items-center gap-4 bg-amber-50/50 p-4 rounded-xl border border-amber-100 lg:w-auto">
+        <div class="flex items-center gap-2">
+          <label for="margin-input" class="text-xs font-bold uppercase tracking-wider text-amber-800">Margen Sugerido:</label>
+          <div class="relative flex items-center">
+            <span class="absolute left-2 text-amber-700 font-semibold text-sm">+</span>
+            <input type="number" id="margin-input" oninput="handleMarginChange()" value="35" min="0" max="500" class="w-16 pl-5 pr-2 py-1 text-sm font-bold text-center text-amber-900 bg-white border border-amber-200 rounded-md outline-none focus:ring-2 focus:ring-amber-500">
+            <span class="ml-1 text-amber-800 text-sm font-semibold">%</span>
+          </div>
+        </div>
+        <div class="h-6 w-px bg-amber-200 hidden sm:block"></div>
+        <label class="inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="unpriced-filter" onchange="toggleUnpricedFilter()" class="sr-only peer">
+          <div class="relative w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
+          <span class="ms-2 text-xs font-medium text-slate-600">Ver solo "Sin precio"</span>
+        </label>
+      </div>
+
+    </div>
+
+    <!-- MAIN EXCEL GRID -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+          <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
+            <tr>
+              <th scope="col" class="py-3.5 px-4 text-center w-16">Nº</th>
+              <th scope="col" class="py-3.5 px-4 min-w-[250px]">Nombre del Perfume</th>
+              <th scope="col" class="py-3.5 px-4 w-28">Volumen</th>
+              <th scope="col" class="py-3.5 px-4 w-32">Género</th>
+              <th scope="col" class="py-3.5 px-4 w-40 text-right">Precio Mayor ($)</th>
+              <th id="suggested-header" class="py-3.5 px-4 w-44 text-right bg-amber-50/50 text-amber-900">Sugerido (+35%)</th>
+              <th scope="col" class="py-3.5 px-4 w-16 text-center">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="perfumes-table-body" class="divide-y divide-slate-100 bg-white">
+            <!-- Rows are dynamically generated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- TABLE FOOTER / PAGINATION -->
+      <div class="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+        <div class="text-xs text-slate-500">
+          Mostrando <span id="pag-start" class="font-semibold text-slate-800">1</span> - <span id="pag-end" class="font-semibold text-slate-800">25</span> de <span id="pag-total" class="font-semibold text-slate-800">200</span> perfumes
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-1.5 text-xs text-slate-600">
+            <span>Filas por página:</span>
+            <select id="rows-per-page" onchange="changeRowsPerPage()" class="bg-white border border-slate-200 rounded-md px-2 py-1 outline-none">
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="all">Ver todos</option>
+            </select>
+          </div>
+          <div class="flex gap-1.5">
+            <button onclick="prevPage()" id="btn-prev" class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 disabled:opacity-40 disabled:hover:bg-white disabled:pointer-events-none transition-all">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+            <button onclick="nextPage()" id="btn-next" class="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 disabled:opacity-40 disabled:hover:bg-white disabled:pointer-events-none transition-all">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUICK ADD NEW ITEM FORM -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <h3 class="text-base font-bold text-slate-950 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        Agregar nuevo perfume a la lista
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Nombre</label>
+          <input type="text" id="new-name" placeholder="Ej. ASAD GOLD ELIXIR" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Volumen</label>
+          <input type="text" id="new-volume" placeholder="Ej. 100ML" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Género</label>
+          <select id="new-gender" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all">
+            <option value="DAMA">DAMA</option>
+            <option value="CABALLERO">CABALLERO</option>
+            <option value="UNISEX">UNISEX</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Precio Mayor ($)</label>
+          <div class="flex gap-2">
+            <input type="number" id="new-wholesale" placeholder="Ej. 35 o dejar vacío" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all">
+            <button onclick="addNewPerfume()" class="px-5 py-2 font-semibold text-sm rounded-lg text-white bg-slate-900 hover:bg-slate-850 shadow-sm transition-all whitespace-nowrap">
+              Agregar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Raw CSV data supplied by user
+    const rawCSV = `Nº,Nombre del Perfume,Volumen,Género,Precio Mayor ($),Precio Sugerido (+35%)
+1,YARA ELIXIR,100ML,DAMA,39,53
+2,ASAD ELIXIR,100ML,CABALLERO,39,53
+3,VICTORIA,100ML,DAMA,38,51
+4,ART OF UNIVERSE,100ML,UNISEX,Sin precio,-
+5,MUSAMAM BLACK INTENSE,100ML,DAMA,Sin precio,-
+6,MUSAMAM WHITE INTENSE,100ML,DAMA,Sin precio,-
+7,EFEF LATTAFA,100ML,DAMA,Sin precio,-
+8,ECLAIRE LATTAFA,100ML,DAMA,35,47
+9,YARA LATTAFA,100ML,DAMA,28,38
+10,YARA TOUS,100ML,DAMA,28,38
+11,YARA CANDY,100ML,DAMA,28,38
+12,YARA MOI,100ML,DAMA,28,38
+13,ASAD LATTAFA,100ML,CABALLERO,Sin precio,-
+14,ASAD ZANZIBAR,100ML,CABALLERO,28,38
+15,ASAD BOURBON,100ML,CABALLERO,35,47
+16,LAYAAN,100ML,DAMA,40,54
+17,MAYAR LATTAFA,100ML,DAMA,Sin precio,-
+18,KHAMRAH,100ML,UNISEX,35,47
+19,MAYAR CHERRY,100ML,DAMA,33,45
+20,KHAMRAH DUKHAN,100ML,CABALLERO,40,54
+21,MAYAR NATURAL INTENSE,100ML,DAMA,27,36
+22,KHAMRAH QAWHA,100ML,CABALLERO,35,47
+23,AL NOBLE SAFER,100ML,CABALLERO,30,41
+24,EMEER LATTAFA,100ML,UNISEX,45,61
+25,ECLAIRE BANOFFI,100ML,DAMA,43,58
+26,ECLAIRE PISTACHE,100ML,DAMA,43,58
+27,BERRY ON TOP (Chocolate),100ML,UNISEX,50,68
+28,BERRY ON TOP (Fresa),100ML,UNISEX,Sin precio,-
+29,CHOCO OVERDOSE,100ML,UNISEX,50,68
+30,MALLOW MADNESS,100ML,UNISEX,50,68
+31,VANILLA FREAK,100ML,UNISEX,50,68
+32,WHIPPED PLEASURE,100ML,UNISEX,50,68
+33,HER CONFESSION,100ML,DAMA,45,61
+34,HIS CONFESSION,100ML,CABALLERO,Sin precio,-
+35,LIAM LATTAFA,100ML,UNISEX,Sin precio,-
+36,LIAM BLUE,100ML,UNISEX,Sin precio,-
+37,AJWAA LATTAFA,100ML,DAMA,45,61
+38,HABIK WOMAN,100ML,DAMA,Sin precio,-
+39,SEHR,100ML,DAMA,48,65
+40,ETERNAL VANILLE,100ML,DAMA,Sin precio,-
+41,TERIAQ,100ML,DAMA,42,57
+42,TERIAQ INTENSE,100ML,UNISEX,40,54
+43,JASSOR LATTAFA,100ML,UNISEX,37,50
+44,VINTAGE RADIO,100ML,CABALLERO,35,47
+45,SHAHEEN GOLD,100ML,CABALLERO,Sin precio,-
+46,SHAHEEN SILVER,100ML,CABALLERO,Sin precio,-
+47,DINASTY LATTAFA,100ML,CABALLERO,Sin precio,-
+48,ATLAS LATTAFA,75ML,CABALLERO,35,47
+49,QAED AL FURSAN,90ML,CABALLERO,25,34
+50,HAYAATI FLORENCE,100ML,DAMA,Sin precio,-
+51,QAED AL FURSAN UNTAMED,90ML,CABALLERO,27,36
+52,HAYAATI GOLD ELIXIR,100ML,DAMA,25,34
+53,QAED AL FURSAN LIMITED,90ML,UNISEX,25,34
+54,HAYAATI AL MALEKY,100ML,CABALLERO,Sin precio,-
+55,VELVET ROSE,100ML,DAMA,25,34
+56,HAYAATI,100ML,CABALLERO,25,34
+57,NEBRAS,100ML,DAMA,35,47
+58,ANSAAM GOLD,100ML,DAMA,Sin precio,-
+59,NEBRAS ELIXIR,100ML,DAMA,45,61
+60,WAJOOD,100ML,CABALLERO,Sin precio,-
+61,THE KINGDOM WOMAN,100ML,DAMA,31,42
+62,THE KINGDOM MEN,100ML,CABALLERO,Sin precio,-
+63,PETRA LATTAFA,100ML,DAMA,Sin precio,-
+64,ATHEERI LATTAFA,100ML,DAMA,Sin precio,-
+65,RAVE NOW,100ML,CABALLERO,25,34
+66,HAYA LATTAFA,100ML,DAMA,Sin precio,-
+67,RAVE NOW INTENSE,100ML,UNISEX,Sin precio,-
+68,SAKEENA LATTAFA,100ML,DAMA,30,41
+69,RAVE NOW WHITE,100ML,UNISEX,25,34
+70,EMAAN LATTAFA,100ML,UNISEX,Sin precio,-
+71,NOW PINK,100ML,DAMA,Sin precio,-
+72,QIMMAH,100ML,CABALLERO,22,30
+73,ANGHAN LATTAFA,100ML,DAMA,40,54
+74,PISA LATTAFA,100ML,CABALLERO,Sin precio,-
+75,ISHQ AL SHUYUKH SILVER,100ML,CABALLERO,Sin precio,-
+76,ISHQ AL SHUYUKH GOLD,100ML,CABALLERO,Sin precio,-
+77,THARWAH SILVER,100ML,CABALLERO,38,51
+78,THARWAH GOLD,100ML,UNISEX,Sin precio,-
+79,MOHRA SILKY ROSE,100ML,DAMA,Sin precio,-
+80,MOHRA,100ML,UNISEX,25,34
+81,OUD FOR GLORY,100ML,CABALLERO,30,41
+82,SUBLIME,100ML,UNISEX,30,41
+83,NOBLE BLUSH,100ML,DAMA,33,45
+84,AMETHYST,100ML,UNISEX,30,41
+85,HONOR Y GLORY,100ML,UNISEX,30,41
+86,FIRE ON ICE,100ML,CABALLERO,35,47
+87,RAMZ GOLD,100ML,UNISEX,22,30
+88,RAMZ SILVER,100ML,DAMA,Sin precio,-
+89,FAKHAR SILVER,100ML,CABALLERO,Sin precio,-
+90,OPULENT RED,100ML,UNISEX,Sin precio,-
+91,FAKHAR ROSE,100ML,DAMA,30,41
+92,OPULENT OUD,100ML,UNISEX,Sin precio,-
+93,FAKHAR GOLD,100ML,CABALLERO,30,41
+94,OPULENT MUSK,100ML,UNISEX,Sin precio,-
+95,FHAKAR PLATIN,100ML,CABALLERO,38,51
+96,OPULENT DUBAI,100ML,UNISEX,28,38
+97,MANDARIN SKY,100ML,UNISEX,35,47
+98,MANDARIN SKY ELIXIR,200ML,CABALLERO,52,70
+99,MANDARIN SKY ELIXIR,100ML,CABALLERO,Sin precio,-
+100,ODYSSEY ARTISTO,100ML,CABALLERO,40,54
+101,ODYSSEY MANDARIN VINTAGE,100ML,CABALLERO,47,63
+102,ODYSSEY SPECTRA,100ML,UNISEX,30,41
+103,ODYSSEY HOMME BLACK,100ML,CABALLERO,30,41
+104,ODYSSEY HOMME WHITE,100ML,CABALLERO,30,41
+105,ANA ABIYEDH,60ML,CABALLERO,Sin precio,-
+106,ANA ABIYEDH ROUGE,60ML,UNISEX,20,27
+107,ANA ABIYEDH CORAL,60ML,DAMA,25,34
+108,ANA ABIYEDH POUDREE,60ML,DAMA,20,27
+109,SET GAGHBA,,UNISEX,15,20
+110,ANA ABIYEDH SCARLET,60ML,DAMA,30,41
+111,CONFIDENTIAL GOLD,100ML,UNISEX,Sin precio,-
+112,CONFIDENTIAL PLATIUM,100ML,UNISEX,Sin precio,-
+113,ODYSSEY TYRANT,100ML,CABALLERO,31,42
+114,ODYSSEE CANDEE,100ML,DAMA,30,41
+115,ODYSSEY AQUA,60ML,UNISEX,Sin precio,-
+116,ODYSEEY MARSHMALLOW,100ML,UNISEX,45,61
+117,ODYSSEY TOFFEE COFFE,100ML,UNISEX,47,63
+118,ODYSSEY GO MANGO,100ML,UNISEX,42,57
+119,ODYSSEY BAHAMA,100ML,UNISEX,42,57
+120,ODYSSEY BLACK FOREST,100ML,UNISEX,45,61
+121,CLUB DE NUIT PRECIEUX,55ML,CABALLERO,55,74
+122,CLUB DE NUIT PRECIEUX DAMA,55ML,DAMA,55,74
+123,CLUB DE NUIT INTENSE MAN,105ML,CABALLERO,37,50
+124,CLUB DE NUIT UNTOLD,105ML,UNISEX,Sin precio,-
+125,CLUB DE NUIT BLING,105ML,CABALLERO,55,74
+126,CLUB DE NUIT SILLAGE,105ML,UNISEX,40,54
+127,CLUB DE NUIT INTENSE LUX,105ML,CABALLERO,Sin precio,-
+128,CLUB DE NUIT MALEKA,105ML,DAMA,45,61
+129,YUM YUM,100ML,DAMA,Sin precio,-
+130,ISLAND BLISS,100ML,DAMA,46,62
+131,BOM BOM,100ML,UNISEX,Sin precio,-
+132,ISLAND BREEZE,100ML,UNISEX,50,68
+133,MISSCATWALK,100ML,DAMA,Sin precio,-
+134,MISS ACTITUDE,100ML,DAMA,38,51
+135,MISS CHIC,100ML,DAMA,Sin precio,-
+136,MISS MACNIFIQ,100ML,DAMA,37,50
+137,BEACH PARTY,100ML,UNISEX,47,63
+138,SPACE AGE,100ML,UNISEX,34,46
+139,TAG NERO,100ML,DAMA,30,41
+140,TAG ROSSO,100ML,CABALLERO,35,47
+141,TAG COLORATA,100ML,UNISEX,Sin precio,-
+142,VENTANA MARIINE,100ML,CABALLERO,Sin precio,-
+143,CHECKMATE,100ML,UNISEX,46,62
+144,VENTANA,100ML,CABALLERO,28,38
+145,ODYSSEY LIMONI,100ML,UNISEX,32,43
+146,ODYSSEY MEGA,100ML,CABALLERO,30,41
+147,ODYSSEY REVOLUTION,100ML,UNISEX,45,61
+148,ODYSEEY DUBAI CHOCOLATE,100ML,CABALLERO,40,54
+149,ODYSSEY AOUD,100ML,CABALLERO,31,42
+150,ODYSSEY WILD ONE,100ML,CABALLERO,Sin precio,-
+151,EL CIELO,100ML,UNISEX,Sin precio,-
+152,LA ROSA,100ML,CABALLERO,34,46
+153,CLUB DE NUIT MILESTONE,100ML,UNISEX,41,55
+154,CLUB DE NUIT URBAN MAN ELIXIR,105ML,CABALLERO,Sin precio,-
+155,CLUB DE NUIT ICONIC,105ML,CABALLERO,50,68
+156,CLUB DE NUIT URBAN MAN,105ML,CABALLERO,33,45
+157,CLUB DE NUIT WOMAN,105ML,DAMA,Sin precio,-
+158,CLUB DE NUIT IMPERIAL,105ML,DAMA,42,57
+159,CLUB DE NUIT INTENSE WOMAN,105ML,UNISEX,32,43
+160,CLUB DE NUIT WOMAN EXTRAIT PARFUM,105ML,DAMA,40,54
+161,9PM AFNAN,100ML,CABALLERO,35,47
+162,9PM NITE OUT,100ML,UNISEX,55,74
+163,9PM REBEL,100ML,CABALLERO,Sin precio,-
+164,9AM DIVE,100ML,UNISEX,Sin precio,-
+165,9PM POUR FAMME,100ML,DAMA,Sin precio,-
+166,9PM ELIXIR,100ML,CABALLERO,Sin precio,-
+167,9PM POUR FAMME,100ML,DAMA,Sin precio,-
+168,9AM AFNAN,100ML,UNISEX,35,47
+169,NITRO RED,100ML,CABALLERO,40,54
+170,NITRO BLACK,100ML,CABALLERO,35,47
+171,NITRO RED INTENSELY,100ML,CABALLERO,55,74
+172,NITRO INTENSE,100ML,CABALLERO,40,54
+173,NITRO GREEN,100ML,CABALLERO,40,54
+174,NITRO WHITE,100ML,CABALLERO,40,54
+175,NITRO BLUE,100ML,CABALLERO,40,54
+176,NITRO PLATINUM,100ML,CABALLERO,45,61
+177,AL HARAMAIN GOLD EDITION,120ML,UNISEX,65,88
+178,AL HARAMAIN GOLD EDITION,100ML,UNISEX,Sin precio,-
+179,AL HARAMAIN RUBY,120ML,UNISEX,Sin precio,-
+180,AL HARAMAIN RUBY,100ML,UNISEX,65,88
+181,AL HARAMAIN CARBON,60ML,UNISEX,58,78
+182,AL HARAMAIN OUD WHITE,60ML,UNISEX,62,84
+183,ORIENTICA ROYAL AMBER,80ML,UNISEX,80,108
+184,ORIENTICA AMBER ROUGE,80ML,UNISEX,80,108
+185,ETER ARABIAN SKY,100ML,UNISEX,Sin precio,-
+186,ETER DESERT FLOWER,100ML,UNISEX,55,74
+187,LIONHEART MEN,100ML,CABALLERO,Sin precio,-
+188,LIONHEART WOMAN,100ML,DAMA,45,61
+189,HUNTER,100ML,CABALLERO,30,41
+190,HUNTER INTENSE,100ML,CABALLERO,Sin precio,-
+191,HISTORY SAHARA,100ML,UNISEX,30,41
+192,LE PARFAIT AZURE,100ML,DAMA,24,32
+193,TURATHI BLUE,100ML,CABALLERO,40,54
+194,TRIBUTE BLUE,100ML,UNISEX,45,61
+195,TURATHI ELECTRIC,100ML,UNISEX,43,58
+196,TRIBUTE PINK,100ML,DAMA,35,47
+197,TURATHI PURPLE,100ML,DAMA,40,54
+198,SUPREMACY TAPIS ROUGE,100ML,DAMA,40,54
+199,TURATHI RED,100ML,DAMA,35,47
+200,RARE,100ML,CABALLERO,45,61`;
+
+    let perfumes = [];
+    let currentGenderFilter = 'TODOS';
+    let searchQuery = '';
+    let showOnlyUnpriced = false;
+    let marginPercent = 35;
+    
+    // Pagination state
+    let currentPage = 1;
+    let rowsPerPage = 25;
+
+    // Load data
+    function init() {
+      if (localStorage.getItem('perfumes_data')) {
+        perfumes = JSON.parse(localStorage.getItem('perfumes_data'));
+      } else {
+        perfumes = parseRawCSV(rawCSV);
+        saveToLocalStorage();
+      }
+      
+      if (localStorage.getItem('perfumes_margin')) {
+        marginPercent = parseFloat(localStorage.getItem('perfumes_margin'));
+        document.getElementById('margin-input').value = marginPercent;
+      }
+      
+      updateMarginHeader();
+      renderTable();
+      calculateMetrics();
+    }
+
+    function parseRawCSV(csv) {
+      const lines = csv.trim().split('\n');
+      const data = [];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        // Parse CSV with support for inner parentheses but simple comma delimiter
+        const parts = line.split(',');
+        if (parts.length < 5) continue;
+        
+        const id = parseInt(parts[0]);
+        const name = parts[1];
+        const volume = parts[2] || '';
+        const gender = parts[3];
+        const wholesaleStr = parts[4];
+        
+        const wholesale = (wholesaleStr === 'Sin precio' || wholesaleStr === '') ? null : parseFloat(wholesaleStr);
+        
+        data.push({
+          id,
+          name,
+          volume,
+          gender,
+          wholesale
+        });
+      }
+      return data;
+    }
+
+    function saveToLocalStorage() {
+      localStorage.setItem('perfumes_data', JSON.stringify(perfumes));
+    }
+
+    // Dynamic Calculations
+    function getSuggestedPrice(wholesale) {
+      if (wholesale === null || isNaN(wholesale)) return null;
+      return Math.round(wholesale * (1 + marginPercent / 100));
+    }
+
+    function calculateMetrics() {
+      const total = perfumes.length;
+      const priced = perfumes.filter(p => p.wholesale !== null).length;
+      const unpriced = total - priced;
+      
+      let sumWholesale = 0;
+      perfumes.forEach(p => {
+        if (p.wholesale !== null) sumWholesale += p.wholesale;
+      });
+      const avg = priced > 0 ? (sumWholesale / priced).toFixed(2) : '0.00';
+
+      document.getElementById('metric-total').textContent = total;
+      document.getElementById('metric-priced').textContent = priced;
+      document.getElementById('metric-unpriced').textContent = unpriced;
+      document.getElementById('metric-avg-cost').textContent = `$${avg}`;
+    }
+
+    // Rendering Grid
+    function renderTable() {
+      const tbody = document.getElementById('perfumes-table-body');
+      tbody.innerHTML = '';
+
+      // Apply Filters
+      let filtered = perfumes.filter(p => {
+        const matchesGender = currentGenderFilter === 'TODOS' || p.gender === currentGenderFilter;
+        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.id.toString() === searchQuery;
+        const matchesUnpriced = !showOnlyUnpriced || p.wholesale === null;
+        return matchesGender && matchesSearch && matchesUnpriced;
+      });
+
+      // Pagination
+      const totalItems = filtered.length;
+      let limit = rowsPerPage === 'all' ? totalItems : parseInt(rowsPerPage);
+      const totalPages = Math.ceil(totalItems / limit) || 1;
+      
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      const startIdx = (currentPage - 1) * limit;
+      const endIdx = rowsPerPage === 'all' ? totalItems : Math.min(startIdx + limit, totalItems);
+      
+      const pageItems = filtered.slice(startIdx, endIdx);
+
+      // DOM Updates for pagination info
+      document.getElementById('pag-start').textContent = totalItems === 0 ? 0 : startIdx + 1;
+      document.getElementById('pag-end').textContent = endIdx;
+      document.getElementById('pag-total').textContent = totalItems;
+      
+      document.getElementById('btn-prev').disabled = currentPage === 1;
+      document.getElementById('btn-next').disabled = currentPage === totalPages || rowsPerPage === 'all';
+
+      if (pageItems.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-10 text-center text-slate-400 font-medium">
+              No se encontraron perfumes con los filtros actuales.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      pageItems.forEach((perfume) => {
+        const suggested = getSuggestedPrice(perfume.wholesale);
+        const wholesaleValue = perfume.wholesale === null ? '' : perfume.wholesale;
+        const wholesaleText = perfume.wholesale === null ? 'Sin precio' : `$${perfume.wholesale}`;
+        const suggestedText = suggested === null ? '-' : `$${suggested}`;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50/70 transition-colors";
+        tr.innerHTML = `
+          <td class="py-3.5 px-4 text-center text-slate-400 font-semibold">${perfume.id}</td>
+          <td class="py-3.5 px-4 font-semibold text-slate-900">
+            <input type="text" value="${escapeHtml(perfume.name)}" onchange="updateCell(${perfume.id}, 'name', this.value)" class="excel-cell w-full bg-transparent border-0 py-1 px-1.5 rounded focus:bg-white text-sm outline-none font-medium">
+          </td>
+          <td class="py-3.5 px-4">
+            <input type="text" value="${escapeHtml(perfume.volume)}" onchange="updateCell(${perfume.id}, 'volume', this.value)" class="excel-cell w-20 bg-transparent border-0 py-1 px-1.5 rounded focus:bg-white text-sm outline-none">
+          </td>
+          <td class="py-3.5 px-4">
+            <select onchange="updateCell(${perfume.id}, 'gender', this.value)" class="excel-cell bg-transparent border-0 py-1 px-1 rounded focus:bg-white text-xs font-bold outline-none cursor-pointer ${getGenderBadgeClass(perfume.gender)}">
+              <option value="DAMA" ${perfume.gender === 'DAMA' ? 'selected' : ''}>DAMA</option>
+              <option value="CABALLERO" ${perfume.gender === 'CABALLERO' ? 'selected' : ''}>CABALLERO</option>
+              <option value="UNISEX" ${perfume.gender === 'UNISEX' ? 'selected' : ''}>UNISEX</option>
+            </select>
+          </td>
+          <td class="py-3.5 px-4 text-right">
+            <div class="flex items-center justify-end">
+              <span class="text-slate-400 text-xs mr-1">$</span>
+              <input type="number" step="any" placeholder="Sin precio" value="${wholesaleValue}" onchange="updateCellNumber(${perfume.id}, 'wholesale', this.value)" class="excel-cell w-24 text-right bg-transparent border-0 py-1 px-1.5 rounded focus:bg-white text-sm outline-none font-bold ${perfume.wholesale === null ? 'text-slate-400 font-normal italic' : 'text-slate-900'}">
+            </div>
+          </td>
+          <td class="py-3.5 px-4 text-right bg-amber-50/30 text-amber-950 font-bold text-sm select-none">
+            ${suggestedText}
+          </td>
+          <td class="py-3.5 px-4 text-center">
+            <button onclick="deletePerfume(${perfume.id})" class="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all" title="Eliminar Perfume">
+              <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function getGenderBadgeClass(gender) {
+      if (gender === 'DAMA') return 'text-pink-600';
+      if (gender === 'CABALLERO') return 'text-sky-600';
+      return 'text-purple-600';
+    }
+
+    // Excel updates simulation
+    function updateCell(id, field, value) {
+      const idx = perfumes.findIndex(p => p.id === id);
+      if (idx !== -1) {
+        perfumes[idx][field] = value.trim();
+        saveToLocalStorage();
+        calculateMetrics();
+        // Render only specific components if necessary, but full render is fast enough
+        renderTable();
+      }
+    }
+
+    function updateCellNumber(id, field, value) {
+      const idx = perfumes.findIndex(p => p.id === id);
+      if (idx !== -1) {
+        const val = value.trim();
+        perfumes[idx][field] = val === '' ? null : parseFloat(val);
+        saveToLocalStorage();
+        calculateMetrics();
+        renderTable();
+      }
+    }
+
+    // Dynamic Margin Slider handler
+    function handleMarginChange() {
+      const input = document.getElementById('margin-input');
+      let val = parseFloat(input.value);
+      if (isNaN(val) || val < 0) val = 0;
+      marginPercent = val;
+      localStorage.setItem('perfumes_margin', marginPercent);
+      updateMarginHeader();
+      renderTable();
+    }
+
+    function updateMarginHeader() {
+      const header = document.getElementById('suggested-header');
+      header.textContent = `Sugerido (+${marginPercent}%)`;
+    }
+
+    // Search & filters
+    function handleSearch() {
+      searchQuery = document.getElementById('search-input').value;
+      currentPage = 1;
+      renderTable();
+    }
+
+    function filterGender(gender) {
+      currentGenderFilter = gender;
+      
+      // Update button highlights
+      document.querySelectorAll('.gender-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'text-slate-800', 'shadow-xs');
+        btn.classList.add('text-slate-500', 'hover:text-slate-800');
+      });
+
+      const activeBtn = document.getElementById(`btn-gender-${gender}`);
+      activeBtn.classList.add('bg-white', 'text-slate-800', 'shadow-xs');
+      activeBtn.classList.remove('text-slate-500', 'hover:text-slate-800');
+
+      currentPage = 1;
+      renderTable();
+    }
+
+    function toggleUnpricedFilter() {
+      showOnlyUnpriced = document.getElementById('unpriced-filter').checked;
+      currentPage = 1;
+      renderTable();
+    }
+
+    // Add and Delete Items
+    function addNewPerfume() {
+      const name = document.getElementById('new-name').value.trim();
+      const volume = document.getElementById('new-volume').value.trim();
+      const gender = document.getElementById('new-gender').value;
+      const wholesaleVal = document.getElementById('new-wholesale').value.trim();
+
+      if (!name) {
+        alert('Por favor, ingresa el nombre del perfume.');
+        return;
+      }
+
+      // Generate next unique ID
+      const nextId = perfumes.length > 0 ? Math.max(...perfumes.map(p => p.id)) + 1 : 1;
+      const wholesale = wholesaleVal === '' ? null : parseFloat(wholesaleVal);
+
+      perfumes.push({
+        id: nextId,
+        name: name.toUpperCase(),
+        volume: volume || '100ML',
+        gender: gender,
+        wholesale: wholesale
+      });
+
+      saveToLocalStorage();
+      calculateMetrics();
+      
+      // Clear inputs
+      document.getElementById('new-name').value = '';
+      document.getElementById('new-volume').value = '';
+      document.getElementById('new-wholesale').value = '';
+
+      // Go to last page to see new item if not filtered
+      currentPage = Math.ceil(perfumes.length / (rowsPerPage === 'all' ? perfumes.length : rowsPerPage));
+      renderTable();
+    }
+
+    function deletePerfume(id) {
+      if (confirm(`¿Estás seguro de que deseas eliminar el perfume Nº ${id}?`)) {
+        perfumes = perfumes.filter(p => p.id !== id);
+        saveToLocalStorage();
+        calculateMetrics();
+        renderTable();
+      }
+    }
+
+    // Reset list
+    function resetData() {
+      if (confirm('¿Deseas restaurar la lista a su estado original? Perderás cualquier cambio que hayas realizado.')) {
+        localStorage.removeItem('perfumes_data');
+        localStorage.removeItem('perfumes_margin');
+        marginPercent = 35;
+        document.getElementById('margin-input').value = 35;
+        init();
+      }
+    }
+
+    // Pagination handlers
+    function changeRowsPerPage() {
+      rowsPerPage = document.getElementById('rows-per-page').value;
+      currentPage = 1;
+      renderTable();
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTable();
+      }
+    }
+
+    function nextPage() {
+      currentPage++;
+      renderTable();
+    }
+
+    // Export Excel compatible CSV
+    function exportToCSV() {
+      // Create headers
+      let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for Excel encoding compatibility
+      csvContent += `Nº,Nombre del Perfume,Volumen,Género,Precio Mayor ($),Precio Sugerido (+${marginPercent}%)\r\n`;
+
+      perfumes.forEach(p => {
+        const wholesaleText = p.wholesale === null ? "Sin precio" : p.wholesale;
+        const suggested = getSuggestedPrice(p.wholesale);
+        const suggestedText = suggested === null ? "-" : suggested;
+        
+        // Escape quotes if names contain them
+        const escapedName = p.name.includes(',') ? `"${p.name}"` : p.name;
+        
+        csvContent += `${p.id},${escapedName},${p.volume},${p.gender},${wholesaleText},${suggestedText}\r\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Inventario_Perfumes_Margen_${marginPercent}pct.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // HTML Helper
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Initialize on load
+    window.onload = init;
+  </script>
+</body>
+</html>
