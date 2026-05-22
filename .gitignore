@@ -44,3 +44,12 @@ next-env.d.ts
 # Logs
 dev.log
 server.log
+
+# Z internal / sandbox files
+.zscripts/
+download/
+upload/
+mini-services/
+skills/
+examples/
+Caddyfile
