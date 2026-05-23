@@ -55,12 +55,12 @@ export function PerfumeDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-6 border-b border-slate-200 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-6 border-b border-[#2a2a2a] mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-950 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
             Panel de Control de Perfumes
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[#888]">
             Gestiona precios mayoristas, calcula margenes sugeridos y exporta
             directamente a Excel.
           </p>
@@ -68,29 +68,39 @@ export function PerfumeDashboard() {
         <div className="mt-4 md:mt-0 flex gap-3">
           <Button
             onClick={exportToCSV}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+            className="bg-gradient-to-r from-[#d4a853] to-[#b8860b] text-black font-bold shadow-none hover:from-[#c9972e] hover:to-[#a67808]"
           >
             <Download className="w-4 h-4 mr-2" />
             Exportar a Excel (CSV)
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" className="shadow-sm">
+              <Button
+                variant="outline"
+                className="border-[#333] text-[#999] hover:text-white hover:border-[#555] bg-transparent"
+              >
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Restaurar Lista Original
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="bg-[#1e1e1e] border-[#333] text-white">
               <AlertDialogHeader>
-                <AlertDialogTitle>Restaurar lista original</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogTitle className="text-white">
+                  Restaurar lista original
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-[#999]">
                   Deseas restaurar la lista a su estado original? Perderas
                   cualquier cambio que hayas realizado.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={resetData}>
+                <AlertDialogCancel className="bg-[#1a1a1a] border-[#333] text-[#ccc] hover:bg-[#252525] hover:text-white">
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={resetData}
+                  className="bg-[#d4a853] text-black font-bold hover:bg-[#c9972e]"
+                >
                   Restaurar
                 </AlertDialogAction>
               </AlertDialogFooter>

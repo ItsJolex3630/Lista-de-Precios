@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Panel de Control de Perfumes - Inventario y Precios",
+  title: "Panel de Control de Perfumes - Jolie Fragrances",
   description:
     "Gestiona precios mayoristas, calcula margenes sugeridos y exporta directamente a Excel. Panel de control profesional de inventario de perfumes.",
   keywords: [
@@ -24,8 +24,9 @@ export const metadata: Metadata = {
     "mayorista",
     "control",
     "panel",
+    "jolie fragrances",
   ],
-  authors: [{ name: "Perfume Inventory" }],
+  authors: [{ name: "Jolie Fragrances" }],
   icons: {
     icon: "/logo.svg",
   },
@@ -37,9 +38,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" className="dark" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50 text-slate-800 min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0a0a] text-[#e5e5e5] min-h-screen`}
       >
         {children}
         <Toaster />

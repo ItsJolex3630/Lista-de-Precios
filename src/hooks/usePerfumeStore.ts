@@ -12,6 +12,7 @@ interface PerfumeState {
   showOnlyUnpriced: boolean;
   currentPage: number;
   rowsPerPage: number | "all";
+  highlightedPerfumeId: number | null;
 
   // Actions
   setMarginPercent: (margin: number) => void;
@@ -20,6 +21,8 @@ interface PerfumeState {
   toggleShowOnlyUnpriced: () => void;
   setCurrentPage: (page: number) => void;
   setRowsPerPage: (rows: number | "all") => void;
+  setHighlightedPerfumeId: (id: number | null) => void;
+  highlightAndScrollToPerfume: (id: number) => void;
 
   updatePerfume: (id: number, field: keyof Perfume, value: string | number | null) => void;
   addPerfume: (perfume: Omit<Perfume, "id">) => void;
@@ -28,6 +31,7 @@ interface PerfumeState {
 
   // Computed
   getFilteredPerfumes: () => Perfume[];
+  getSuggestions: (query: string) => Perfume[];
   getMetrics: () => {
     total: number;
     priced: number;
@@ -36,6 +40,8 @@ interface PerfumeState {
   };
   getSuggestedPrice: (wholesale: number | null) => number | null;
 }
+
+export type { GenderFilter };
 
 export const usePerfumeStore = create<PerfumeState>()(
   persist(
@@ -47,6 +53,7 @@ export const usePerfumeStore = create<PerfumeState>()(
       showOnlyUnpriced: false,
       currentPage: 1,
       rowsPerPage: 25,
+      highlightedPerfumeId: null,
 
       setMarginPercent: (margin) => set({ marginPercent: margin }),
       setSearchQuery: (query) => set({ searchQuery: query, currentPage: 1 }),
@@ -55,6 +62,33 @@ export const usePerfumeStore = create<PerfumeState>()(
         set((state) => ({ showOnlyUnpriced: !state.showOnlyUnpriced, currentPage: 1 })),
       setCurrentPage: (page) => set({ currentPage: page }),
       setRowsPerPage: (rows) => set({ rowsPerPage: rows, currentPage: 1 }),
+      setHighlightedPerfumeId: (id) => set({ highlightedPerfumeId: id }),
+
+      highlightAndScrollToPerfume: (id) => {
+        set({ highlightedPerfumeId: id });
+
+        // Calculate which page this perfume is on
+        const { getFilteredPerfumes, rowsPerPage } = get();
+        const filtered = getFilteredPerfumes();
+        const perfumeIndex = filtered.findIndex((p) => p.id === id);
+        if (perfumeIndex === -1) return;
+
+        const limit = rowsPerPage === "all" ? filtered.length : rowsPerPage;
+        const targetPage = Math.floor(perfumeIndex / limit) + 1;
+        set({ currentPage: targetPage });
+
+        // Scroll after render
+        requestAnimationFrame(() => {
+          const row = document.getElementById(`perfume-row-${id}`);
+          if (row) {
+            row.scrollIntoView({ behavior: "smooth", block: "center" });
+            // Remove highlight after 3 seconds
+            setTimeout(() => {
+              set({ highlightedPerfumeId: null });
+            }, 3000);
+          }
+        });
+      },
 
       updatePerfume: (id, field, value) =>
         set((state) => ({
@@ -95,6 +129,15 @@ export const usePerfumeStore = create<PerfumeState>()(
           const matchesUnpriced = !showOnlyUnpriced || p.wholesale === null;
           return matchesGender && matchesSearch && matchesUnpriced;
         });
+      },
+
+      getSuggestions: (query) => {
+        if (!query.trim()) return [];
+        const { perfumes } = get();
+        const lower = query.toLowerCase();
+        return perfumes
+          .filter((p) => p.name.toLowerCase().includes(lower))
+          .slice(0, 8);
       },
 
       getMetrics: () => {
