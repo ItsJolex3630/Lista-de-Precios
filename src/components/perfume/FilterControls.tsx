@@ -7,7 +7,7 @@ import type { GenderFilter } from "@/hooks/usePerfumeStore";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search, X } from "lucide-react";
+import { Search, X, Cloud, CloudOff, Loader2 } from "lucide-react";
 
 const genderOptions: { label: string; value: GenderFilter }[] = [
   { label: "Todos", value: "TODOS" },
@@ -21,6 +21,7 @@ export function FilterControls() {
   const genderFilter = usePerfumeStore((s) => s.genderFilter);
   const marginPercent = usePerfumeStore((s) => s.marginPercent);
   const showOnlyUnpriced = usePerfumeStore((s) => s.showOnlyUnpriced);
+  const syncStatus = usePerfumeStore((s) => s.syncStatus);
 
   const setSearchQuery = usePerfumeStore((s) => s.setSearchQuery);
   const setGenderFilter = usePerfumeStore((s) => s.setGenderFilter);
@@ -34,10 +35,12 @@ export function FilterControls() {
   const [showDropdown, setShowDropdown] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isSelectingRef = useRef(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
+      if (isSelectingRef.current) return; // Don't close if selecting a suggestion
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
       }
@@ -73,13 +76,19 @@ export function FilterControls() {
 
   const handleSuggestionClick = useCallback(
     (perfume: Perfume) => {
-      setLocalQuery(perfume.name);
-      setSearchQuery(perfume.name);
+      isSelectingRef.current = true;
+      setLocalQuery("");
+      setSearchQuery("");
       setShowDropdown(false);
       setSuggestions([]);
 
       // Navigate to and highlight the perfume in the table
       highlightAndScrollToPerfume(perfume.id);
+
+      // Reset the selecting flag after a short delay
+      setTimeout(() => {
+        isSelectingRef.current = false;
+      }, 300);
     },
     [setSearchQuery, highlightAndScrollToPerfume]
   );
@@ -97,6 +106,21 @@ export function FilterControls() {
     }
   }, [localQuery, suggestions]);
 
+  // Sync status indicator
+  const SyncIcon = () => {
+    switch (syncStatus) {
+      case "synced":
+        return <Cloud className="w-3.5 h-3.5 text-emerald-400" />;
+      case "loading":
+        return <Loader2 className="w-3.5 h-3.5 text-[#d4a853] animate-spin" />;
+      case "offline":
+      case "error":
+        return <CloudOff className="w-3.5 h-3.5 text-[#666]" />;
+      default:
+        return <Cloud className="w-3.5 h-3.5 text-[#666]" />;
+    }
+  };
+
   return (
     <div className="bg-[#161616] p-4 md:p-6 rounded-2xl border border-[#2a2a2a] shadow-none mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       {/* Search and Gender Filters */}
@@ -109,16 +133,19 @@ export function FilterControls() {
             value={localQuery}
             onChange={(e) => handleInputChange(e.target.value)}
             onFocus={handleInputFocus}
-            className="pl-10 pr-8 bg-[#1a1a1a] border-[#333] text-white placeholder:text-[#666] focus:ring-[#d4a853] focus:border-[#d4a853]"
+            className="pl-10 pr-12 bg-[#1a1a1a] border-[#333] text-white placeholder:text-[#666] focus:ring-[#d4a853] focus:border-[#d4a853]"
           />
-          {localQuery && (
-            <button
-              onClick={handleClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666] hover:text-[#d4a853] transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+            <SyncIcon />
+            {localQuery && (
+              <button
+                onClick={handleClearSearch}
+                className="text-[#666] hover:text-[#d4a853] transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
           {/* Autocomplete dropdown */}
           {showDropdown && suggestions.length > 0 && (
@@ -126,7 +153,10 @@ export function FilterControls() {
               {suggestions.map((perfume) => (
                 <button
                   key={perfume.id}
-                  onClick={() => handleSuggestionClick(perfume)}
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // Prevent blur/click-outside from closing dropdown
+                    handleSuggestionClick(perfume);
+                  }}
                   className="w-full text-left px-4 py-2.5 text-sm text-[#e5e5e5] hover:bg-[#2a2a2a] transition-colors flex items-center justify-between gap-2"
                 >
                   <span className="truncate">{perfume.name}</span>

@@ -1,12 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePerfumeStore } from "@/hooks/usePerfumeStore";
 import { MetricCards } from "./MetricCards";
 import { FilterControls } from "./FilterControls";
 import { PerfumeTable } from "./PerfumeTable";
 import { AddPerfumeForm } from "./AddPerfumeForm";
 import { Button } from "@/components/ui/button";
-import { Download, RotateCcw } from "lucide-react";
+import { Download, RotateCcw, CloudOff, Cloud, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,20 @@ export function PerfumeDashboard() {
   const perfumes = usePerfumeStore((s) => s.perfumes);
   const marginPercent = usePerfumeStore((s) => s.marginPercent);
   const getSuggestedPrice = usePerfumeStore((s) => s.getSuggestedPrice);
+  const loadFromServer = usePerfumeStore((s) => s.loadFromServer);
+  const syncStatus = usePerfumeStore((s) => s.syncStatus);
+
+  // Load data from server on mount
+  useEffect(() => {
+    loadFromServer();
+
+    // Set up periodic sync every 30 seconds
+    const interval = setInterval(() => {
+      loadFromServer();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [loadFromServer]);
 
   const exportToCSV = () => {
     const BOM = "\uFEFF";
@@ -52,13 +67,43 @@ export function PerfumeDashboard() {
     URL.revokeObjectURL(url);
   };
 
+  // Sync status display
+  const SyncBadge = () => {
+    if (syncStatus === "synced") {
+      return (
+        <div className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full">
+          <Cloud className="w-3 h-3" />
+          <span>Sincronizado</span>
+        </div>
+      );
+    }
+    if (syncStatus === "loading") {
+      return (
+        <div className="flex items-center gap-1.5 text-xs text-[#d4a853] bg-[#d4a853]/10 px-2.5 py-1 rounded-full">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          <span>Sincronizando...</span>
+        </div>
+      );
+    }
+    if (syncStatus === "offline") {
+      return (
+        <div className="flex items-center gap-1.5 text-xs text-[#888] bg-[#888]/10 px-2.5 py-1 rounded-full" title="Datos guardados localmente. Configura Vercel Postgres para sincronizar entre dispositivos.">
+          <CloudOff className="w-3 h-3" />
+          <span>Solo local</span>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-8 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-6 border-b border-[#2a2a2a] mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
             Panel de Control de Perfumes
+            <SyncBadge />
           </h1>
           <p className="mt-1 text-sm text-[#888]">
             Gestiona precios mayoristas, calcula margenes sugeridos y exporta
