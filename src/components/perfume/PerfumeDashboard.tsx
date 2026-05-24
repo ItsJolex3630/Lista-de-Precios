@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePerfumeStore } from "@/hooks/usePerfumeStore";
 import { MetricCards } from "./MetricCards";
 import { FilterControls } from "./FilterControls";
@@ -8,6 +8,7 @@ import { PerfumeTable } from "./PerfumeTable";
 import { AddPerfumeForm } from "./AddPerfumeForm";
 import { Button } from "@/components/ui/button";
 import { Download, RotateCcw, CloudOff, Cloud, Loader2 } from "lucide-react";
+import { exportToExcel } from "@/lib/excel-export";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,31 +41,21 @@ export function PerfumeDashboard() {
     return () => clearInterval(interval);
   }, [loadFromServer]);
 
-  const exportToCSV = () => {
-    const BOM = "\uFEFF";
-    let csvContent = BOM;
-    csvContent += `N\u00ba,Nombre del Perfume,Volumen,Genero,Precio Mayor ($),Precio Sugerido (+${marginPercent}%)\r\n`;
+  const getMetrics = usePerfumeStore((s) => s.getMetrics);
+  const [isExporting, setIsExporting] = useState(false);
 
-    perfumes.forEach((p) => {
-      const wholesaleText = p.wholesale === null ? "Sin precio" : p.wholesale;
-      const suggested = getSuggestedPrice(p.wholesale);
-      const suggestedText = suggested === null ? "-" : suggested;
-      const escapedName = p.name.includes(",") ? `"${p.name}"` : p.name;
-      csvContent += `${p.id},${escapedName},${p.volume},${p.gender},${wholesaleText},${suggestedText}\r\n`;
-    });
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `Inventario_Perfumes_Margen_${marginPercent}pct.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportToExcel({
+        perfumes,
+        marginPercent,
+        getSuggestedPrice,
+        getMetrics,
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Sync status display
@@ -112,11 +103,16 @@ export function PerfumeDashboard() {
         </div>
         <div className="mt-4 md:mt-0 flex gap-3">
           <Button
-            onClick={exportToCSV}
-            className="bg-gradient-to-r from-[#d4a853] to-[#b8860b] text-black font-bold shadow-none hover:from-[#c9972e] hover:to-[#a67808]"
+            onClick={handleExport}
+            disabled={isExporting}
+            className="bg-gradient-to-r from-[#d4a853] to-[#b8860b] text-black font-bold shadow-none hover:from-[#c9972e] hover:to-[#a67808] disabled:opacity-70"
           >
-            <Download className="w-4 h-4 mr-2" />
-            Exportar a Excel (CSV)
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            {isExporting ? "Exportando..." : "Exportar a Excel"}
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
